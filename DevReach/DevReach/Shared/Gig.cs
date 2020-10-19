@@ -9,12 +9,17 @@ namespace DevReach.Shared
 {
     public class Gig
     {
+        public int Id { get; set; }
+
         [Required]
         public string Location { get; set; }
+
         [Required]
-        public DateTime? Date { get; set; }
+        public DateTime Date { get; set; }
+        
         [Range(5, 1000)]
-        public decimal Payment { get; set; }
+        public double Payment { get; set; }
+        
         public bool HasBeenPaid { get; set; }
     }
 }

@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using DevReach.Shared;
 using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using ExpressionPowerTools.Serialization.EFCore.Http.Extensions;
 
 namespace DevReach.Client
 {
@@ -23,6 +25,11 @@ namespace DevReach.Client
 
             // Supply HttpClient instances that include access tokens when making requests to the server project
             builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("DevReach.ServerAPI"));
+
+            builder.Services.AddHttpClient<IGigRepository, GigClient>(
+                c => c.BaseAddress = new Uri($"{builder.HostEnvironment.BaseAddress}api/Gigs"));
+
+            builder.Services.AddExpressionPowerToolsEFCore(new Uri(builder.HostEnvironment.BaseAddress));
 
             builder.Services.AddApiAuthorization();
 

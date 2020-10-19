@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using DevReach.Server.Data;
 using DevReach.Server.Models;
+using DevReach.Shared;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -12,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using ExpressionPowerTools.Serialization.EFCore.AspNetCore.Extensions;
 
 namespace DevReach.Server
 {
@@ -31,6 +33,12 @@ namespace DevReach.Server
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(
                     Configuration.GetConnectionString("DefaultConnection")));
+
+            services.AddDbContext<GigContext>(options =>
+                options.UseSqlServer(
+                    Configuration.GetConnectionString("GigConnection")));
+
+            services.AddScoped<IGigRepository, GigRepository>();
 
             services.AddDatabaseDeveloperPageExceptionFilter();
 
@@ -83,6 +91,7 @@ namespace DevReach.Server
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapPowerToolsEFCore<GigContext>();
                 endpoints.MapRazorPages();
                 endpoints.MapControllers();
                 endpoints.MapFallbackToFile("index.html");

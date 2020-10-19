@@ -1,0 +1,269 @@
+﻿@page "/ListGigs"
+@using DevReach.Shared
+@using ExpressionPowerTools.Serialization.EFCore.Http.Extensions
+@using ExpressionPowerTools.Serialization.EFCore.Http.Queryable
+
+<p>Need gigs? Visit the <a href="/addgig">Add Gig</a> page!</p>
+
+<p>
+    <strong>Filter:</strong>
+    <button @onclick="@(async () => await ChangeType(QueryType.Both))" disabled="@(loading || TypeOfQuery == QueryType.Both)">All</button>
+    <button @onclick="@(async () => await ChangeType(QueryType.PaidOnly))" disabled="@(loading || TypeOfQuery == QueryType.PaidOnly)">Paid Only</button>
+    <button @onclick="@(async () => await ChangeType(QueryType.UnpaidOnly))" disabled="@(loading || TypeOfQuery == QueryType.UnpaidOnly)">Unpaid Only</button>
+</p>
+<p>
+    <strong>Sort:</strong>
+    <button @onclick="@(async () => await ChangeSort(SortType.Date))" disabled="@(loading || QuerySort == SortType.Date)">Date</button>
+    <button @onclick="@(async () => await ChangeSort(SortType.Location))" disabled="@(loading || QuerySort == SortType.Location)">Location</button>
+    <button @onclick="@(async () => await ChangeSort(SortType.DateThenLocation))" disabled="@(loading || QuerySort == SortType.DateThenLocation)">Date, then Location</button>
+    <button @onclick="@(async () => await ChangeSort(SortType.LocationThenDate))" disabled="@(loading || QuerySort == SortType.LocationThenDate)">Location, then Date</button>
+</p>
+<p>
+    <strong>Sort Direction:</strong>
+    @if (QuerySort == SortType.Date || QuerySort == SortType.Location)
+    {
+        <button @onclick="@(async () => await ChangeSortDirection(SortDirections.Ascending))" disabled="@(loading || SortDirection == SortDirections.Ascending)">Ascending</button>
+        <button @onclick="@(async () => await ChangeSortDirection(SortDirections.Descending))" disabled="@(loading || SortDirection == SortDirections.Descending)">Descending</button>
+    }
+    else
+    {
+        <button @onclick="@(async () => await ChangeSortDirection(SortDirections.AscendingThenAscending))"
+                disabled="@(loading || SortDirection == SortDirections.AscendingThenAscending)">
+            Ascending, then Ascending
+        </button>
+        <button @onclick="@(async () => await ChangeSortDirection(SortDirections.AscendingThenDescending))"
+                disabled="@(loading || SortDirection == SortDirections.AscendingThenDescending)">
+            Ascending, then Descending
+        </button>
+        <button @onclick="@(async () => await ChangeSortDirection(SortDirections.DescendingThenDescending))"
+                disabled="@(loading || SortDirection == SortDirections.DescendingThenDescending)">
+            Descending, then Ascending
+        </button>
+        <button @onclick="@(async () => await ChangeSortDirection(SortDirections.DescendingThenAscending))"
+                disabled="@(loading || SortDirection == SortDirections.DescendingThenAscending)">
+            Descending, then Ascending
+        </button>
+    }
+</p>
+
+@if (loading)
+{
+    <p>Loading...</p>
+}
+
+@if (Gigs != null && Gigs.Count == 0)
+{
+    <p>Gigs not found.</p>
+}
+
+@if (Gigs != null && Gigs.Count > 0)
+{
+    <ul>
+        @foreach (var gig in Gigs)
+        {
+            <li>
+                @gig.Date:
+                @gig.Location
+
+                @if (gig.HasBeenPaid)
+                {
+                    <span>✅ Paid </span>
+                }
+                else
+                {
+                    <span>❌ Need to pay: </span>
+                }
+                @gig.Payment.ToString("c")
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private enum QueryType
+    {
+        PaidOnly,
+        UnpaidOnly,
+        Both
+    };
+
+    private enum SortType
+    {
+        Location,
+        Date,
+        LocationThenDate,
+        DateThenLocation
+    };
+
+    private enum SortDirections
+    {
+        Ascending,
+        Descending,
+        AscendingThenAscending,
+        AscendingThenDescending,
+        DescendingThenAscending,
+        DescendingThenDescending
+    }
+
+    private bool loading = false;
+    private string errorMessage = string.Empty;
+    private QueryType TypeOfQuery = QueryType.Both;
+    private SortType QuerySort = SortType.LocationThenDate;
+    private SortDirections SortDirection = SortDirections.AscendingThenAscending;
+
+    private List<Gig> Gigs { get; set; }
+
+    private async Task RefreshAsync()
+    {
+        if (loading)
+        {
+            return;
+        }
+
+        loading = true;
+
+        try
+        {
+            errorMessage = string.Empty;
+            var query = MakeQuery();
+            Gigs = await query.ExecuteRemote().ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.ToString());
+            errorMessage = "Something bad happened. 😢 Details in console.";
+        }
+        finally
+        {
+            loading = false;
+        }
+
+    }
+
+    private IQueryable<Gig> MakeQuery()
+    {
+        var baseQuery = DbClientContext<GigContext>.Query(ctx => ctx.Gigs);
+
+        switch (TypeOfQuery)
+        {
+            case QueryType.PaidOnly:
+                baseQuery = baseQuery.Where(g => g.HasBeenPaid);
+                break;
+
+            case QueryType.UnpaidOnly:
+                baseQuery = baseQuery.Where(g => !g.HasBeenPaid);
+                break;
+        }
+
+        switch (QuerySort)
+        {
+            case SortType.Date:
+                baseQuery = SortDirection == SortDirections.Ascending ?
+                    baseQuery.OrderBy(g => g.Date) :
+                    baseQuery.OrderByDescending(g => g.Date);
+                break;
+
+            case SortType.Location:
+                baseQuery = SortDirection == SortDirections.Ascending ?
+                    baseQuery.OrderBy(g => g.Location) :
+                    baseQuery.OrderByDescending(g => g.Location);
+                break;
+
+            case SortType.DateThenLocation:
+                switch (SortDirection)
+                {
+                    case SortDirections.AscendingThenAscending:
+                        baseQuery = baseQuery.OrderBy(g => g.Date)
+                            .ThenBy(g => g.Location);
+                        break;
+                    case SortDirections.AscendingThenDescending:
+                        baseQuery = baseQuery.OrderBy(g => g.Date)
+                            .ThenByDescending(g => g.Location);
+                        break;
+                    case SortDirections.DescendingThenAscending:
+                        baseQuery = baseQuery.OrderByDescending(g => g.Date)
+                            .ThenBy(g => g.Location);
+                        break;
+                    case SortDirections.DescendingThenDescending:
+                        baseQuery = baseQuery.OrderByDescending(g => g.Date)
+                            .ThenByDescending(g => g.Location);
+                        break;
+                }
+                break;
+
+            case SortType.LocationThenDate:
+                switch (SortDirection)
+                {
+                    case SortDirections.AscendingThenAscending:
+                        baseQuery = baseQuery.OrderBy(g => g.Location)
+                            .ThenBy(g => g.Date);
+                        break;
+                    case SortDirections.AscendingThenDescending:
+                        baseQuery = baseQuery.OrderBy(g => g.Location)
+                            .ThenByDescending(g => g.Date);
+                        break;
+                    case SortDirections.DescendingThenAscending:
+                        baseQuery = baseQuery.OrderByDescending(g => g.Location)
+                            .ThenBy(g => g.Date);
+                        break;
+                    case SortDirections.DescendingThenDescending:
+                        baseQuery = baseQuery.OrderByDescending(g => g.Location)
+                            .ThenByDescending(g => g.Date);
+                        break;
+                }
+                break;
+        }
+
+        return baseQuery;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAsync();
+        await base.OnInitializedAsync();
+    }
+
+    private Task ChangeType(QueryType type)
+    {
+        if (type != TypeOfQuery)
+        {
+            TypeOfQuery = type;
+            return RefreshAsync();
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task ChangeSort(SortType type)
+    {
+        if (type != QuerySort)
+        {
+            QuerySort = type;
+            switch (type)
+            {
+                case SortType.Date:
+                case SortType.Location:
+                    SortDirection = SortDirections.Ascending;
+                    break;
+                default:
+                    SortDirection = SortDirections.AscendingThenAscending;
+                    break;
+            }
+
+            return RefreshAsync();
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task ChangeSortDirection(SortDirections direction)
+    {
+        if (direction != SortDirection)
+        {
+            SortDirection = direction;
+            return RefreshAsync();
+        }
+
+        return Task.CompletedTask;
+    }
+
+}
