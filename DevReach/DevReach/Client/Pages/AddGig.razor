@@ -1,7 +1,7 @@
 ﻿@page "/addgig"
 @inject IGigRepository Repo
 @attribute [Authorize]
-
+@inject GigService gigService
 <h3>Add Gig</h3>
 
 <button @onclick="AddGigs" disabled="@adding">Add 10 Random Gigs</button>
@@ -87,6 +87,7 @@
             await Repo.AddGigAsync(gig);
         }
         adding = false;
+
     }
 
     void HandleCancel()

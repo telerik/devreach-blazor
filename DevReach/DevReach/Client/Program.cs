@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using DevReach.Shared;
+
 using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -30,6 +31,7 @@ namespace DevReach.Client
                 c => c.BaseAddress = new Uri($"{builder.HostEnvironment.BaseAddress}api/Gigs"));
 
             builder.Services.AddExpressionPowerToolsEFCore(new Uri(builder.HostEnvironment.BaseAddress));
+
 
             builder.Services.AddApiAuthorization();
 
