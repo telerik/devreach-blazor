@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\ExpressionPowerTools\src\ExpressionPowerTools.Serialization.EFCore.AspNetCore\ExpressionPowerTools.Serialization.EFCore.AspNetCore.csproj" />
     <ProjectReference Include="..\Client\DevReach.Client.csproj" />
     <ProjectReference Include="..\Shared\DevReach.Shared.csproj" />
   </ItemGroup>

@@ -1,8 +1,10 @@
 ﻿@page "/addgig"
-@inject HttpClient Http
+@inject IGigRepository Repo
 @attribute [Authorize]
 @inject GigService gigService
 <h3>Add Gig</h3>
+
+<button @onclick="AddGigs" disabled="@adding">Add 10 Random Gigs</button>
 
 <div class="row">
     <div class="col-4">
@@ -41,12 +43,51 @@
 </div>
 @code {
     Gig _gig = new Gig();
+    private bool adding = false;
 
     public async Task HandleAddGig()
     {
         //var result = await Http.PostAsJsonAsync("", _gig);
         Console.WriteLine("Form submitted successfully!");
-        gigService.Gigs.Add(_gig);
+        await Repo.AddGigAsync(_gig);
+        _gig = new Gig();
+
+    }
+
+    public async Task AddGigs()
+    {
+        var locations = new[]
+        {
+            "Redmond, WA",
+            "Lead, SD",
+            "Sofia, Bulgaria",
+            "Mumbai, India",
+            "Amsterdam, Netherlands",
+            "Lisbon, Portugal",
+            "Venice, Italy",
+            "Minsk, Belarus",
+            "St. Petersburg, Russia",
+            "London, U.K.",
+            "Dublin, Ireland",
+            "Paris, France",
+            "Tokyo, Japan",
+            "Hong Kong, China",
+            "Vancouver, Canada"
+        };
+
+        adding = true;
+        var random = new Random();
+        for (var idx = 0; idx < 10; idx++)
+        {
+            var gig = new Gig();
+            gig.Date = DateTime.Now.AddHours(random.Next(24, 24 * 7 * 28));
+            gig.HasBeenPaid = random.NextDouble() < 0.6;
+            gig.Payment = (double)random.Next(5, 999);
+            gig.Location = locations[random.Next(locations.Length)];
+            await Repo.AddGigAsync(gig);
+        }
+        adding = false;
+
     }
 
     void HandleCancel()
